@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+
+    participant C as Client (Postman / Browser)
+    participant API as API Server (Express)
+    participant CTRL as Controller
+    participant SRV as Service Layer
+    participant DB as PostgreSQL (Prisma)
+    participant REDIS as Redis (Cache + Queue)
+    participant W as Worker (emailWorker.js)
+    participant SMTP as Email Provider
+
+    C->>API: HTTP Request (e.g., POST /orders)
+    API->>CTRL: Route matched → call controller
+    CTRL->>SRV: Validate + pass business logic
+
+    SRV->>DB: Read product / cart via Prisma
+    DB-->>SRV: Return result
+
+    SRV->>DB: Write order + update inventory (transaction)
+    DB-->>SRV: Transaction committed
+
+    SRV->>REDIS: Invalidate product cache (DEL products:list)
+    SRV->>REDIS: Push job to queue:emails
+
+    CTRL-->>C: HTTP 201 Order Created
+
+    REDIS-->>W: Worker pulls queued job
+    W->>SMTP: Send order confirmation email
+    SMTP-->>W: Email sent successfully

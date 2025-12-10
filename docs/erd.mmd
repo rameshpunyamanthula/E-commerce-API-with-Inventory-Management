@@ -1,0 +1,56 @@
+erDiagram
+  USERS ||--o{ CARTS : "has"
+  USERS ||--o{ ORDERS : "places"
+  CARTS ||--o{ CART_ITEMS : "contains"
+  ORDERS ||--o{ ORDER_ITEMS : "contains"
+  PRODUCTS ||--o{ CART_ITEMS : "referenced in"
+  PRODUCTS ||--o{ ORDER_ITEMS : "referenced in"
+
+  USERS {
+    int id PK
+    string email
+    string passwordHash
+    string role
+    datetime createdAt
+  }
+
+  PRODUCTS {
+    int id PK
+    string name
+    string description
+    string category
+    decimal price
+    int stockQuantity
+    int version
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  CARTS {
+    int id PK
+    int userId FK
+    datetime updatedAt
+  }
+
+  CART_ITEMS {
+    int id PK
+    int cartId FK
+    int productId FK
+    int quantity
+  }
+
+  ORDERS {
+    int id PK
+    int userId FK
+    decimal totalAmount
+    string status
+    datetime createdAt
+  }
+
+  ORDER_ITEMS {
+    int id PK
+    int orderId FK
+    int productId FK
+    int quantity
+    decimal priceSnapshot
+  }

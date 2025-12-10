@@ -1,0 +1,33 @@
+flowchart LR
+  subgraph Client
+    C[Client (Postman / Browser / CLI)]
+  end
+
+  subgraph API["API Server (Express)"]
+    Ctrl[Controllers] --> Service[Order Service]
+    Service --> RedisEnq[Enqueue job -> Redis list (queue:emails)]
+  end
+
+  C -->|POST /orders| Ctrl
+
+  subgraph Redis["Redis"]
+    RedisQueue[(Redis List: queue:emails)]
+    RedisCache[(Redis Cache: products:list:...)]
+  end
+
+  Service -->|cache invalidation| RedisCache
+  RedisEnq --> RedisQueue
+
+  subgraph Worker["Background Worker"]
+    WorkerProc[emailWorker.js]
+    WorkerProc -->|RPOP / BRPOP| RedisQueue
+    WorkerProc -->|send email| SMTP[SMTP / SendGrid / SES]
+  end
+
+  RedisQueue --> WorkerProc
+  SMTP -->|delivers| UserEmail[User Email Inbox]
+
+  style API fill:#f2f9ff,stroke:#1f6feb
+  style Redis fill:#fff0f6,stroke:#ff4d6d
+  style Worker fill:#f0fff4,stroke:#12b886
+  style Client fill:#ffffff,stroke:#999,stroke-dasharray: 2 2

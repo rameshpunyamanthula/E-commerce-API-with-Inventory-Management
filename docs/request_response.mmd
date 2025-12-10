@@ -1,0 +1,44 @@
+sequenceDiagram
+    autonumber
+
+    participant C as Client (Postman / Browser)
+    participant API as API Server (Express)
+    participant CTR as Controller
+    participant SRV as Service Layer
+    participant DB as PostgreSQL (Prisma)
+    participant RED as Redis (Cache + Queue)
+    participant WRK as Worker (emailWorker.js)
+    participant SMTP as Email Provider
+
+    C->>API: HTTP POST /orders
+    API->>CTR: Route matched → call controller
+    CTR->>SRV: Validate request & call business logic
+
+    Note over SRV,DB: Transaction begins
+
+    SRV->>DB: Read cart & products (SELECT)
+    DB-->>SRV: Return data
+
+    SRV->>DB: Update stock (optimistic locking)
+    DB-->>SRV: Commit success OR conflict
+
+    alt Success
+        SRV->>DB: Insert order + order_items
+        DB-->>SRV: Order created
+        SRV->>RED: DEL products:list (invalidate cache)
+        SRV->>RED: LPUSH queue:emails {orderId,userId}
+    else Conflict
+        SRV-->>CTR: Throw "Concurrent update / stock shortage"
+        CTR-->>API: HTTP 500 Error
+        API-->>C: Error response
+        return
+    end
+
+    CTR-->>API: HTTP 201 Order Created
+    API-->>C: Return order details
+
+    Note over RED,WRK: Worker running in background
+
+    RED-->>WRK: BRPOP queue:emails → job
+    WRK->>SMTP: Send order confirmation email
+    SMTP-->>WRK: Email delivered

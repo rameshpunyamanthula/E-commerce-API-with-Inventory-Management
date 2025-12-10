@@ -1,0 +1,23 @@
+flowchart LR
+  Client["Client (Postman / Browser / CLI)"] -->|HTTP| API["API Server (Express)"]
+  API --> Controllers["Controllers"]
+  Controllers --> Services["Services (business logic)"]
+  Services --> Repositories["Repositories / Prisma Client"]
+  Repositories -->|SQL| Postgres[(PostgreSQL)]
+  Controllers -->|cache-aside| RedisCache[(Redis Cache)]
+  Controllers -->|enqueue job| RedisQueue[(Redis -- queue:emails)]
+  RedisQueue --> Worker["Background Worker (emailWorker.js)"]
+  Worker -->|send| EmailService["SMTP / 3rd-party email"]
+
+  subgraph Infra
+    Postgres
+    RedisCache
+    RedisQueue
+    Worker
+  end
+
+  style API fill:#f2f9ff,stroke:#1f6feb
+  style Postgres fill:#fff7e6,stroke:#ff9900
+  style RedisCache fill:#fff0f6,stroke:#ff4d6d
+  style RedisQueue fill:#fff0f6,stroke:#ff4d6d
+  style Worker fill:#f0fff4,stroke:#12b886
